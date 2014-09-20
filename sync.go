@@ -136,13 +136,13 @@ func detectExistingGoSubmodules(repo string, gopath string) ([]string, error) {
 
 	submodules := []string{}
 	for lineScanner.Scan() {
-		segments := strings.Split(lineScanner.Text(), " ")
+		segments := strings.Split(lineScanner.Text()[1:], " ")
 
-		if len(segments) < 3 {
+		if len(segments) < 2 {
 			return nil, fmt.Errorf("invalid git status output: %q", lineScanner.Text())
 		}
 
-		submodules = append(submodules, segments[2])
+		submodules = append(submodules, segments[1])
 	}
 
 	err = submoduleStatus.Wait()
