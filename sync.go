@@ -46,7 +46,7 @@ func sync(c *cli.Context) {
 	}
 
 	for _, submodule := range existingSubmodules {
-		rm := exec.Command("git", "rm", "--cached", submodule)
+		rm := exec.Command("git", "rm", "--cached", "-f", submodule)
 		rm.Dir = repo
 		rm.Stderr = os.Stderr
 
