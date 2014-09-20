@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"io"
+	"os"
 	"os/exec"
 )
 
@@ -15,6 +16,8 @@ func listPackages(packages ...string) ([]Package, error) {
 		"go",
 		append([]string{"list", "-json"}, packages...)...,
 	)
+
+	listPackages.Stderr = os.Stderr
 
 	packageStream, err := listPackages.StdoutPipe()
 	if err != nil {
