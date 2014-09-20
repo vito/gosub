@@ -38,6 +38,10 @@ func main() {
 					Name:  "repo, r",
 					Value: ".",
 				},
+				cli.StringFlag{
+					Name:  "gopath, g",
+					Value: ".",
+				},
 			},
 			Action: sync,
 		},
