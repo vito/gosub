@@ -7,6 +7,17 @@ import (
 	"os/exec"
 )
 
+// via go list -json
+type Package struct {
+	Standard   bool
+	ImportPath string
+
+	Deps []string
+
+	TestImports  []string
+	XTestImports []string
+}
+
 func listPackages(packages ...string) ([]Package, error) {
 	if len(packages) == 0 {
 		return []Package{}, nil
