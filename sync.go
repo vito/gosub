@@ -45,6 +45,8 @@ func sync(c *cli.Context) {
 		os.Exit(1)
 	}
 
+	gitmodules := filepath.Join(repo, ".gitmodules")
+
 	for _, submodule := range existingSubmodules {
 		rm := exec.Command("git", "rm", "--cached", "-f", submodule)
 		rm.Dir = repo
@@ -53,6 +55,26 @@ func sync(c *cli.Context) {
 		err := rm.Run()
 		if err != nil {
 			println("error clearing submodule: " + err.Error())
+			os.Exit(1)
+		}
+
+		gitConfig := exec.Command("git", "config", "--file", gitmodules, "--remove-section", "submodule."+submodule)
+		gitConfig.Dir = repo
+		gitConfig.Stderr = os.Stderr
+
+		err = gitConfig.Run()
+		if err != nil {
+			println("error removing submodule config: " + err.Error())
+			os.Exit(1)
+		}
+
+		gitAdd := exec.Command("git", "add", gitmodules)
+		gitAdd.Dir = repo
+		gitAdd.Stderr = os.Stderr
+
+		err = gitAdd.Run()
+		if err != nil {
+			println("error staging submodule config: " + err.Error())
 			os.Exit(1)
 		}
 	}
@@ -81,8 +103,6 @@ func sync(c *cli.Context) {
 			continue
 		}
 
-		gitmodules := filepath.Join(repo, ".gitmodules")
-
 		gitConfig := exec.Command("git", "config", "--file", gitmodules, "submodule."+relRoot+".path", relRoot)
 		gitConfig.Stderr = os.Stderr
 
@@ -110,6 +130,16 @@ func sync(c *cli.Context) {
 				println("error configuring submodule: " + err.Error())
 				os.Exit(1)
 			}
+		}
+
+		gitAdd := exec.Command("git", "add", gitmodules)
+		gitAdd.Dir = repo
+		gitAdd.Stderr = os.Stderr
+
+		err = gitAdd.Run()
+		if err != nil {
+			println("error staging submodule config: " + err.Error())
+			os.Exit(1)
 		}
 	}
 }
