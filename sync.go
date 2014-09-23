@@ -47,36 +47,9 @@ func sync(c *cli.Context) {
 
 	gitmodules := filepath.Join(repo, ".gitmodules")
 
+	submodulesToRemove := map[string]bool{}
 	for _, submodule := range existingSubmodules {
-		rm := exec.Command("git", "rm", "--cached", "-f", submodule)
-		rm.Dir = repo
-		rm.Stderr = os.Stderr
-
-		err := rm.Run()
-		if err != nil {
-			println("error clearing submodule: " + err.Error())
-			os.Exit(1)
-		}
-
-		gitConfig := exec.Command("git", "config", "--file", gitmodules, "--remove-section", "submodule."+submodule)
-		gitConfig.Dir = repo
-		gitConfig.Stderr = os.Stderr
-
-		err = gitConfig.Run()
-		if err != nil {
-			println("error removing submodule config: " + err.Error())
-			os.Exit(1)
-		}
-
-		gitAdd := exec.Command("git", "add", gitmodules)
-		gitAdd.Dir = repo
-		gitAdd.Stderr = os.Stderr
-
-		err = gitAdd.Run()
-		if err != nil {
-			println("error staging submodule config: " + err.Error())
-			os.Exit(1)
-		}
+		submodulesToRemove[submodule] = true
 	}
 
 	for pkgRoot, pkgRepo := range pkgRoots {
@@ -86,7 +59,10 @@ func sync(c *cli.Context) {
 			os.Exit(1)
 		}
 
-		fmt.Println(relRoot)
+		fmt.Println("\x1b[32msyncing " + relRoot + "\x1b[0m")
+
+		// keep this submodule
+		delete(submodulesToRemove, relRoot)
 
 		add := exec.Command("git", "add", pkgRoot)
 		add.Dir = repo
@@ -130,6 +106,40 @@ func sync(c *cli.Context) {
 				println("error configuring submodule: " + err.Error())
 				os.Exit(1)
 			}
+		}
+
+		gitAdd := exec.Command("git", "add", gitmodules)
+		gitAdd.Dir = repo
+		gitAdd.Stderr = os.Stderr
+
+		err = gitAdd.Run()
+		if err != nil {
+			println("error staging submodule config: " + err.Error())
+			os.Exit(1)
+		}
+	}
+
+	for submodule, _ := range submodulesToRemove {
+		fmt.Println("\x1b[31mremoving " + submodule + "\x1b[0m")
+
+		rm := exec.Command("git", "rm", "--cached", "-f", submodule)
+		rm.Dir = repo
+		rm.Stderr = os.Stderr
+
+		err := rm.Run()
+		if err != nil {
+			println("error clearing submodule: " + err.Error())
+			os.Exit(1)
+		}
+
+		gitConfig := exec.Command("git", "config", "--file", gitmodules, "--remove-section", "submodule."+submodule)
+		gitConfig.Dir = repo
+		gitConfig.Stderr = os.Stderr
+
+		err = gitConfig.Run()
+		if err != nil {
+			println("error removing submodule config: " + err.Error())
+			os.Exit(1)
 		}
 
 		gitAdd := exec.Command("git", "add", gitmodules)
