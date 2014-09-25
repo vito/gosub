@@ -79,6 +79,20 @@ func sync(c *cli.Context) {
 			continue
 		}
 
+		status := exec.Command("git", "status", "--porcelain")
+		status.Dir = filepath.Join(absRepo, relRoot)
+
+		statusOutput, err := status.Output()
+		if err != nil {
+			println("error fetching submodule status: " + err.Error())
+			os.Exit(1)
+		}
+
+		if len(statusOutput) != 0 {
+			println("\x1b[31msubmodule is dirty: " + pkgRoot + "\x1b[0m")
+			os.Exit(1)
+		}
+
 		gitConfig := exec.Command("git", "config", "--file", gitmodules, "submodule."+relRoot+".path", relRoot)
 		gitConfig.Stderr = os.Stderr
 
