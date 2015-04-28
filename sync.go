@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/codegangsta/cli"
@@ -102,7 +103,7 @@ func sync(c *cli.Context) {
 			os.Exit(1)
 		}
 
-		gitConfig = exec.Command("git", "config", "--file", gitmodules, "submodule."+relRoot+".url", pkgRepo.Origin)
+		gitConfig = exec.Command("git", "config", "--file", gitmodules, "submodule."+relRoot+".url", httpsOrigin(pkgRepo.Origin))
 		gitConfig.Stderr = os.Stderr
 
 		err = gitConfig.Run()
@@ -205,4 +206,10 @@ func detectExistingGoSubmodules(repo string, gopath string) ([]string, error) {
 	}
 
 	return submodules, nil
+}
+
+var sshGitURIRegexp = regexp.MustCompile(`(git@github.com:|https?://github.com/)([^/]+)/(.*?)(\.git)?$`)
+
+func httpsOrigin(uri string) string {
+	return sshGitURIRegexp.ReplaceAllString(uri, "https://github.com/$2/$3")
 }
