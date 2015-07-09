@@ -25,7 +25,7 @@ func listPackages(packages ...string) ([]Package, error) {
 
 	listPackages := exec.Command(
 		"go",
-		append([]string{"list", "-json"}, packages...)...,
+		append([]string{"list", "-e", "-json"}, packages...)...,
 	)
 
 	listPackages.Stderr = os.Stderr
