@@ -15,6 +15,7 @@ import (
 func sync(c *cli.Context) {
 	repo := c.String("repo")
 	gopath := c.String("gopath")
+	ignoredSubmodules := c.StringSlice("ignore")
 
 	absRepo, err := filepath.Abs(repo)
 	if err != nil {
@@ -51,6 +52,13 @@ func sync(c *cli.Context) {
 	submodulesToRemove := map[string]bool{}
 	for _, submodule := range existingSubmodules {
 		submodulesToRemove[submodule] = true
+	}
+
+	for _, submodule := range ignoredSubmodules {
+		_, exists := submodulesToRemove[submodule]
+		if exists {
+			delete(submodulesToRemove, submodule)
+		}
 	}
 
 	for pkgRoot, pkgRepo := range pkgRoots {

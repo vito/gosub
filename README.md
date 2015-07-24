@@ -36,7 +36,8 @@ Non-Git packages are added individually, vendored into the parent repo. You may
 want to add `.hg` and `.bzr` to your `.gitignore`.
 
 Any extra submodules under the `$GOPATH` are then removed. This is to prune
-no-longer-needed dependencies.
+no-longer-needed dependencies. Specify the '-i' flag for each submodule you 
+would like to avoid pruning.
 
 ```sh
 $ gosub sync github.com/my/app github.com/my/lib ...
