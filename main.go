@@ -42,6 +42,11 @@ func main() {
 					Name:  "gopath, g",
 					Value: ".",
 				},
+				cli.StringSliceFlag{
+					Name:  "ignore, i",
+					Value: &cli.StringSlice{},
+					Usage: "Submodule to ignore",
+				},
 			},
 			Action: sync,
 		},
