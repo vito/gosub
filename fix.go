@@ -7,6 +7,9 @@ import (
 	"os/exec"
 	"strings"
 
+	"io/ioutil"
+	"path/filepath"
+
 	"github.com/codegangsta/cli"
 )
 
@@ -28,12 +31,19 @@ func fixExistingSubmodules(repo string) error {
 		return err
 	}
 
+	gitmodules, err := getGitModules(repo)
+	if err != nil {
+		return err
+	}
+
 	var lastErr error
 	for _, submodule := range submodules {
-		err = fixSubmodule(submodule)
-		if err != nil {
-			fmt.Printf("fixExistingSubmodules failed to fix submodule %s\n", submodule)
-			lastErr = err
+		if !gitmodules[submodule] {
+			err = fixSubmodule(submodule)
+			if err != nil {
+				fmt.Printf("fixExistingSubmodules failed to fix submodule %s\n", submodule)
+				lastErr = err
+			}
 		}
 	}
 
@@ -41,7 +51,7 @@ func fixExistingSubmodules(repo string) error {
 }
 
 func fixSubmodule(submodule string) error {
-	fmt.Printf("\x1b[31mFixing submodule %s .", submodule)
+	fmt.Printf("\x1b[32mFixing submodule %s .", submodule)
 	defer fmt.Println("\x1b[0m")
 	rm := exec.Command("git", "rm", "--cached", "-f", submodule)
 	rm.Stderr = os.Stderr
@@ -55,6 +65,7 @@ func fixSubmodule(submodule string) error {
 	if err != nil {
 		return fmt.Errorf("fixSubmodule failed to determine URL of submodule %s: %s", submodule, err)
 	}
+	fmt.Printf(".")
 
 	submoduleAdd := exec.Command("git", "submodule", "add", url, submodule)
 	submoduleAdd.Stderr = os.Stderr
@@ -152,4 +163,23 @@ func getSubmodules(repo string) ([]string, error) {
 	}
 
 	return submodules, nil
+}
+
+func getGitModules(repo string) (map[string]bool, error) {
+	gitmodules := make(map[string]bool)
+
+	dotGitModules, err := ioutil.ReadFile(filepath.Join(repo, ".gitmodules"))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read .gitmodules file: %s", err)
+	}
+
+	lineScanner := bufio.NewScanner(strings.NewReader(string(dotGitModules)))
+	for lineScanner.Scan() {
+		segments := strings.Fields(lineScanner.Text())
+		if len(segments) == 3 && segments[0] == "path" && segments[1] == "=" {
+			gitmodules[segments[2]] = true
+		}
+	}
+
+	return gitmodules, nil
 }
