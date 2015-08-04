@@ -41,10 +41,17 @@ func sync(c *cli.Context) {
 		pkgRoots[root] = repo
 	}
 
-	existingSubmodules, err := detectExistingGoSubmodules(repo, gopath)
+	existingSubmodules, err := detectExistingGoSubmodules(repo, gopath, false)
 	if err != nil {
-		println("failed to detect existing submodules: " + err.Error())
-		os.Exit(1)
+		if fixErr := fixExistingSubmodules(repo); fixErr != nil {
+			println("failed to fix existing submodules: " + fixErr.Error())
+			os.Exit(1)
+		}
+		existingSubmodules, err = detectExistingGoSubmodules(repo, gopath, true)
+		if err != nil {
+			println("failed to detect existing submodules: " + err.Error())
+			os.Exit(1)
+		}
 	}
 
 	gitmodules := filepath.Join(repo, ".gitmodules")
@@ -175,18 +182,26 @@ func sync(c *cli.Context) {
 			os.Exit(1)
 		}
 	}
+
+	if err := fixExistingSubmodules(repo); err != nil {
+		println("failed to fix submodules: " + err.Error())
+		os.Exit(1)
+	}
 }
 
-func detectExistingGoSubmodules(repo string, gopath string) ([]string, error) {
+func detectExistingGoSubmodules(repo string, gopath string, printErrors bool) ([]string, error) {
 	srcPath := filepath.Join(gopath, "src")
 
 	submoduleStatus := exec.Command("git", "submodule", "status", srcPath)
 	submoduleStatus.Dir = repo
 
-	submoduleStatus.Stderr = os.Stderr
+	if printErrors {
+		submoduleStatus.Stderr = os.Stderr
+	}
 
 	statusOut, err := submoduleStatus.StdoutPipe()
 	if err != nil {
+		printErr(printErrors, "detectExistingGoSubmodules failed to get StdoutPipe: %s\n", err)
 		return nil, err
 	}
 
@@ -194,6 +209,7 @@ func detectExistingGoSubmodules(repo string, gopath string) ([]string, error) {
 
 	err = submoduleStatus.Start()
 	if err != nil {
+		printErr(printErrors, "detectExistingGoSubmodules failed to start git submodule status: %s\n", err)
 		return nil, err
 	}
 
@@ -210,10 +226,17 @@ func detectExistingGoSubmodules(repo string, gopath string) ([]string, error) {
 
 	err = submoduleStatus.Wait()
 	if err != nil {
+		printErr(printErrors, "detectExistingGoSubmodules failed to wait for git submodule status: %s\n", err)
 		return nil, err
 	}
 
 	return submodules, nil
+}
+
+func printErr(print bool, format string, err error) {
+	if print {
+		fmt.Printf(format, err)
+	}
 }
 
 var sshGitURIRegexp = regexp.MustCompile(`(git@github.com:|https?://github.com/)([^/]+)/(.*?)(\.git)?$`)

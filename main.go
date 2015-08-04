@@ -50,6 +50,22 @@ func main() {
 			},
 			Action: sync,
 		},
+		{
+			Name:      "fix",
+			ShortName: "s",
+			Usage:     "fix partially constructed submodules",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "repo, r",
+					Value: ".",
+				},
+				cli.StringFlag{
+					Name:  "gopath, g",
+					Value: ".",
+				},
+			},
+			Action: fix,
+		},
 	}
 
 	app.Run(os.Args)
