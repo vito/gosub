@@ -52,7 +52,7 @@ func main() {
 		},
 		{
 			Name:      "fix",
-			ShortName: "s",
+			ShortName: "f",
 			Usage:     "fix partially constructed submodules",
 			Flags: []cli.Flag{
 				cli.StringFlag{
