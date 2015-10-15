@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"sort"
 )
 
 const packageBatchSize = 100
@@ -86,8 +87,16 @@ func listPackages(ps ...string) ([]Package, error) {
 		pkgList = append(pkgList, pkg)
 	}
 
+	sort.Sort(byImportPath(pkgList))
+
 	return pkgList, nil
 }
+
+type byImportPath []Package
+
+func (ps byImportPath) Len() int               { return len(ps) }
+func (ps byImportPath) Less(i int, j int) bool { return ps[i].ImportPath < ps[j].ImportPath }
+func (ps byImportPath) Swap(i int, j int)      { ps[i], ps[j] = ps[j], ps[i] }
 
 func getAppImports(packages ...string) ([]string, error) {
 	appPackages, err := listPackages(packages...)
