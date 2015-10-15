@@ -7,6 +7,8 @@ import (
 	"os/exec"
 )
 
+const packageBatchSize = 100
+
 // via go list -json
 type Package struct {
 	Standard   bool
@@ -18,51 +20,73 @@ type Package struct {
 	XTestImports []string
 }
 
-func listPackages(packages ...string) ([]Package, error) {
-	if len(packages) == 0 {
+func listPackages(ps ...string) ([]Package, error) {
+	if len(ps) == 0 {
 		return []Package{}, nil
 	}
 
-	listPackages := exec.Command(
-		"go",
-		append([]string{"list", "-e", "-json"}, packages...)...,
-	)
+	pkgs := map[string]Package{}
 
-	listPackages.Stderr = os.Stderr
-
-	packageStream, err := listPackages.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-
-	err = listPackages.Start()
-	if err != nil {
-		return nil, err
-	}
-
-	decoder := json.NewDecoder(packageStream)
-
-	pkgs := []Package{}
+	packages := []string{}
+	remainingPackages := ps
 	for {
-		var pkg Package
-		err := decoder.Decode(&pkg)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
+		if len(remainingPackages) == 0 {
+			break
+		}
 
+		if len(remainingPackages) < packageBatchSize {
+			packages = remainingPackages
+			remainingPackages = nil
+		} else {
+			packages = remainingPackages[:packageBatchSize]
+			remainingPackages = remainingPackages[packageBatchSize:]
+		}
+
+		listPackages := exec.Command(
+			"go",
+			append([]string{"list", "-e", "-json"}, packages...)...,
+		)
+
+		listPackages.Stderr = os.Stderr
+
+		packageStream, err := listPackages.StdoutPipe()
+		if err != nil {
 			return nil, err
 		}
 
-		pkgs = append(pkgs, pkg)
+		err = listPackages.Start()
+		if err != nil {
+			return nil, err
+		}
+
+		decoder := json.NewDecoder(packageStream)
+
+		for {
+			var pkg Package
+			err := decoder.Decode(&pkg)
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+
+				return nil, err
+			}
+
+			pkgs[pkg.ImportPath] = pkg
+		}
+
+		err = listPackages.Wait()
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	err = listPackages.Wait()
-	if err != nil {
-		return nil, err
+	pkgList := []Package{}
+	for _, pkg := range pkgs {
+		pkgList = append(pkgList, pkg)
 	}
 
-	return pkgs, nil
+	return pkgList, nil
 }
 
 func getAppImports(packages ...string) ([]string, error) {
