@@ -19,12 +19,12 @@ func sync(c *cli.Context) error {
 
 	absRepo, err := filepath.Abs(repo)
 	if err != nil {
-		return fmt.Errorf("could not resolve repo: " + err.Error())
+		return fmt.Errorf("could not resolve repo: %s", err)
 	}
 
 	absGopath, err := filepath.Abs(gopath)
 	if err != nil {
-		return fmt.Errorf("could not resolve gopath: " + err.Error())
+		return fmt.Errorf("could not resolve gopath: %s", err)
 	}
 
 	pkgRoots := map[string]*Repo{}
@@ -32,7 +32,7 @@ func sync(c *cli.Context) error {
 	for _, dep := range c.Args() {
 		root, repo, err := getDepRoot(absRepo, absGopath, dep)
 		if err != nil {
-			return fmt.Errorf("failed to get dependency repo: " + err.Error())
+			return fmt.Errorf("failed to get dependency repo: %s", err)
 		}
 
 		pkgRoots[root] = repo
@@ -41,11 +41,11 @@ func sync(c *cli.Context) error {
 	existingSubmodules, err := detectExistingGoSubmodules(repo, gopath, false)
 	if err != nil {
 		if fixErr := fixExistingSubmodules(repo); fixErr != nil {
-			return fmt.Errorf("failed to fix existing submodules: " + fixErr.Error())
+			return fmt.Errorf("failed to fix existing submodules: %s", fixErr)
 		}
 		existingSubmodules, err = detectExistingGoSubmodules(repo, gopath, true)
 		if err != nil {
-			return fmt.Errorf("failed to detect existing submodules: " + err.Error())
+			return fmt.Errorf("failed to detect existing submodules: %s", err)
 		}
 	}
 
@@ -66,7 +66,7 @@ func sync(c *cli.Context) error {
 	for pkgRoot, pkgRepo := range pkgRoots {
 		relRoot, err := filepath.Rel(absRepo, pkgRoot)
 		if err != nil {
-			return fmt.Errorf("could not resolve submodule: " + err.Error())
+			return fmt.Errorf("could not resolve submodule: %s", err)
 		}
 
 		fmt.Println("\x1b[32msyncing " + relRoot + "\x1b[0m")
@@ -80,7 +80,7 @@ func sync(c *cli.Context) error {
 
 		err = add.Run()
 		if err != nil {
-			return fmt.Errorf("error clearing submodule: " + err.Error())
+			return fmt.Errorf("error clearing submodule: %s", err)
 		}
 
 		if pkgRepo == nil {
@@ -93,7 +93,7 @@ func sync(c *cli.Context) error {
 
 		statusOutput, err := status.Output()
 		if err != nil {
-			return fmt.Errorf("error fetching submodule status: " + err.Error())
+			return fmt.Errorf("error fetching submodule status: %s", err)
 		}
 
 		if len(statusOutput) != 0 {
@@ -105,7 +105,7 @@ func sync(c *cli.Context) error {
 
 		err = gitConfig.Run()
 		if err != nil {
-			return fmt.Errorf("error configuring submodule: " + err.Error())
+			return fmt.Errorf("error configuring submodule: %s", err)
 		}
 
 		gitConfig = exec.Command("git", "config", "--file", gitmodules, "submodule."+relRoot+".url", httpsOrigin(pkgRepo.Origin))
@@ -113,7 +113,7 @@ func sync(c *cli.Context) error {
 
 		err = gitConfig.Run()
 		if err != nil {
-			return fmt.Errorf("error configuring submodule: " + err.Error())
+			return fmt.Errorf("error configuring submodule: %s", err)
 		}
 
 		if pkgRepo.Branch != "" {
@@ -122,7 +122,7 @@ func sync(c *cli.Context) error {
 
 			err = gitConfig.Run()
 			if err != nil {
-				return fmt.Errorf("error configuring submodule: " + err.Error())
+				return fmt.Errorf("error configuring submodule: %s", err)
 			}
 		}
 
@@ -132,7 +132,7 @@ func sync(c *cli.Context) error {
 
 		err = gitAdd.Run()
 		if err != nil {
-			return fmt.Errorf("error staging submodule config: " + err.Error())
+			return fmt.Errorf("error staging submodule config: %s", err)
 		}
 	}
 
@@ -145,7 +145,7 @@ func sync(c *cli.Context) error {
 
 		err := rm.Run()
 		if err != nil {
-			return fmt.Errorf("error clearing submodule: " + err.Error())
+			return fmt.Errorf("error clearing submodule: %s", err)
 		}
 
 		gitConfig := exec.Command("git", "config", "--file", gitmodules, "--remove-section", "submodule."+submodule)
@@ -154,7 +154,7 @@ func sync(c *cli.Context) error {
 
 		err = gitConfig.Run()
 		if err != nil {
-			return fmt.Errorf("error removing submodule config: " + err.Error())
+			return fmt.Errorf("error removing submodule config: %s", err)
 		}
 
 		gitAdd := exec.Command("git", "add", gitmodules)
@@ -163,12 +163,12 @@ func sync(c *cli.Context) error {
 
 		err = gitAdd.Run()
 		if err != nil {
-			return fmt.Errorf("error staging submodule config: " + err.Error())
+			return fmt.Errorf("error staging submodule config: %s", err)
 		}
 	}
 
 	if err := fixExistingSubmodules(repo); err != nil {
-		return fmt.Errorf("failed to fix submodules: " + err.Error())
+		return fmt.Errorf("failed to fix submodules: %s", err)
 	}
 
 	return nil

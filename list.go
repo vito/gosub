@@ -12,24 +12,24 @@ func list(c *cli.Context) error {
 
 	appImports, err := getAppImports(appPackages...)
 	if err != nil {
-		return fmt.Errorf("failed to detect app imports: " + err.Error())
+		return fmt.Errorf("failed to detect app imports: %s", err)
 	}
 
 	testImports, err := getTestImports(testPackages...)
 	if err != nil {
-		return fmt.Errorf("failed to detect test imports: " + err.Error())
+		return fmt.Errorf("failed to detect test imports: %s", err)
 	}
 
 	allImports := append(appImports, testImports...)
 
 	allDeps, err := getAllDeps(allImports...)
 	if err != nil {
-		return fmt.Errorf("failed to get deps: " + err.Error())
+		return fmt.Errorf("failed to get deps: %s", err)
 	}
 
 	deps, err := filterNonStandard(allDeps...)
 	if err != nil {
-		return fmt.Errorf("failed to filter deps: " + err.Error())
+		return fmt.Errorf("failed to filter deps: %s", err)
 	}
 
 	for _, dep := range deps {

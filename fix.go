@@ -17,7 +17,7 @@ func fix(c *cli.Context) error {
 	repo := c.String("repo")
 
 	if fixErr := fixExistingSubmodules(repo); fixErr != nil {
-		return fmt.Errorf("failed to fix existing submodules: " + fixErr.Error())
+		return fmt.Errorf("failed to fix existing submodules: %s", fixErr)
 	}
 	return nil
 }
