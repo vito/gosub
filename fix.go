@@ -13,14 +13,13 @@ import (
 	"github.com/codegangsta/cli"
 )
 
-func fix(c *cli.Context) {
+func fix(c *cli.Context) error {
 	repo := c.String("repo")
 
 	if fixErr := fixExistingSubmodules(repo); fixErr != nil {
-		println("failed to fix existing submodules: " + fixErr.Error())
-		os.Exit(1)
+		return fmt.Errorf("failed to fix existing submodules: %s", fixErr)
 	}
-
+	return nil
 }
 
 // Convert any "semi-submodules" into first class submodules.
