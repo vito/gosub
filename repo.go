@@ -14,22 +14,25 @@ type Repo struct {
 }
 
 func getDepRoot(repo string, gopath string, pkg string) (string, *Repo, error) {
+	var err error
+
 	pkgRoot := filepath.Join(gopath, "src", pkg)
 
-	gitToplevel := exec.Command("git", "rev-parse", "--show-toplevel")
-	gitToplevel.Dir = pkgRoot
-
-	buf := new(bytes.Buffer)
-
-	gitToplevel.Stdout = buf
-	gitToplevel.Stderr = os.Stderr
-
-	err := gitToplevel.Run()
+	root, err := getGitTopLevel(pkgRoot)
 	if err != nil {
 		return "", nil, err
 	}
 
-	root := strings.TrimRight(buf.String(), "\n")
+	rootRoot := root
+	for rootRoot != repo && strings.HasPrefix(rootRoot, repo) {
+		root = rootRoot
+		rootRoot, err = getGitTopLevel(filepath.Dir(root))
+
+		if err != nil {
+			return "", nil, err
+		}
+	}
+
 	if root == repo {
 		// non-git repo; point to package instead
 		return pkgRoot, nil, nil
@@ -40,7 +43,7 @@ func getDepRoot(repo string, gopath string, pkg string) (string, *Repo, error) {
 	gitOriginURL := exec.Command("git", "config", "--get", "remote.origin.url")
 	gitOriginURL.Dir = root
 
-	buf = new(bytes.Buffer)
+	buf := new(bytes.Buffer)
 
 	gitOriginURL.Stdout = buf
 	gitOriginURL.Stderr = os.Stderr
@@ -71,4 +74,21 @@ func getDepRoot(repo string, gopath string, pkg string) (string, *Repo, error) {
 	}
 
 	return root, pkgRepo, nil
+}
+
+func getGitTopLevel(path string) (string, error) {
+	gitToplevel := exec.Command("git", "rev-parse", "--show-toplevel")
+	gitToplevel.Dir = path
+
+	buf := new(bytes.Buffer)
+
+	gitToplevel.Stdout = buf
+	gitToplevel.Stderr = os.Stderr
+
+	err := gitToplevel.Run()
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimRight(buf.String(), "\n"), nil
 }
