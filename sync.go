@@ -108,17 +108,17 @@ func sync(c *cli.Context) error {
 			return fmt.Errorf("error configuring submodule: %s", err)
 		}
 
-		gitConfig = exec.Command("git", "config", "--file", gitmodules, "submodule."+relRoot+".url")
-		gitConfig.Stderr = os.Stderr
+		url := httpsOrigin(pkgRepo.Origin)
 
-		out, err := gitConfig.Output()
+		if !c.Bool("force-https") {
+			gitConfig = exec.Command("git", "config", "--file", gitmodules, "submodule." + relRoot + ".url")
+			gitConfig.Stderr = os.Stderr
 
-		var url string
+			out, err := gitConfig.Output()
 
-		if err != nil {
-			url = httpsOrigin(pkgRepo.Origin)
-		} else {
-			url = strings.TrimRight(string(out),"\n")
+			if err == nil {
+				url = strings.TrimRight(string(out), "\n")
+			}
 		}
 
 		gitConfig = exec.Command("git", "config", "--file", gitmodules, "submodule."+relRoot+".url", url)
