@@ -21,12 +21,10 @@ type Package struct {
 	XTestImports []string
 }
 
-func listPackages(ps ...string) ([]Package, error) {
+func listPackages(pkgs map[string]Package, goos string, ps ...string) error {
 	if len(ps) == 0 {
-		return []Package{}, nil
+		return nil
 	}
-
-	pkgs := map[string]Package{}
 
 	packages := []string{}
 	remainingPackages := ps
@@ -47,17 +45,18 @@ func listPackages(ps ...string) ([]Package, error) {
 			"go",
 			append([]string{"list", "-e", "-json"}, packages...)...,
 		)
+		listPackages.Env = []string{"GOOS=" + goos, "GOPATH=" + os.Getenv("GOPATH")}
 
 		listPackages.Stderr = os.Stderr
 
 		packageStream, err := listPackages.StdoutPipe()
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		err = listPackages.Start()
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		decoder := json.NewDecoder(packageStream)
@@ -70,26 +69,36 @@ func listPackages(ps ...string) ([]Package, error) {
 					break
 				}
 
-				return nil, err
+				return err
 			}
 
-			pkgs[pkg.ImportPath] = pkg
+			if existing, exists := pkgs[pkg.ImportPath]; exists {
+				for _, dep := range pkg.Deps {
+					hasDep := false
+					for _, existingDep := range existing.Deps {
+						if dep == existingDep {
+							hasDep = true
+							break
+						}
+					}
+
+					if !hasDep {
+						existing.Deps = append(existing.Deps, dep)
+						pkgs[pkg.ImportPath] = existing
+					}
+				}
+			} else {
+				pkgs[pkg.ImportPath] = pkg
+			}
 		}
 
 		err = listPackages.Wait()
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	pkgList := []Package{}
-	for _, pkg := range pkgs {
-		pkgList = append(pkgList, pkg)
-	}
-
-	sort.Sort(byImportPath(pkgList))
-
-	return pkgList, nil
+	return nil
 }
 
 type byImportPath []Package
@@ -98,8 +107,28 @@ func (ps byImportPath) Len() int               { return len(ps) }
 func (ps byImportPath) Less(i int, j int) bool { return ps[i].ImportPath < ps[j].ImportPath }
 func (ps byImportPath) Swap(i int, j int)      { ps[i], ps[j] = ps[j], ps[i] }
 
+func listAllPlatformPackages(packages ...string) ([]Package, error) {
+	allPackages := map[string]Package{}
+
+	for _, goos := range []string{"linux", "darwin", "windows"} {
+		err := listPackages(allPackages, goos, packages...)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	pkgList := []Package{}
+	for _, pkg := range allPackages {
+		pkgList = append(pkgList, pkg)
+	}
+
+	sort.Sort(byImportPath(pkgList))
+
+	return pkgList, nil
+}
+
 func getAppImports(packages ...string) ([]string, error) {
-	appPackages, err := listPackages(packages...)
+	appPackages, err := listAllPlatformPackages(packages...)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +142,7 @@ func getAppImports(packages ...string) ([]string, error) {
 }
 
 func getTestImports(packages ...string) ([]string, error) {
-	testPackages, err := listPackages(packages...)
+	testPackages, err := listAllPlatformPackages(packages...)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +159,7 @@ func getTestImports(packages ...string) ([]string, error) {
 }
 
 func getAllDeps(packages ...string) ([]string, error) {
-	pkgs, err := listPackages(packages...)
+	pkgs, err := listAllPlatformPackages(packages...)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +179,7 @@ func getAllDeps(packages ...string) ([]string, error) {
 }
 
 func filterNonStandard(packages ...string) ([]string, error) {
-	pkgs, err := listPackages(packages...)
+	pkgs, err := listAllPlatformPackages(packages...)
 	if err != nil {
 		return nil, err
 	}
