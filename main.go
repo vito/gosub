@@ -49,7 +49,7 @@ func main() {
 					Usage: "Submodule to ignore",
 				},
 				cli.BoolTFlag{
-					Name: "force-https",
+					Name:  "force-https",
 					Usage: "Rewrite ssh repositories as https. (default \"true\")",
 				},
 			},
