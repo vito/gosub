@@ -111,7 +111,7 @@ func sync(c *cli.Context) error {
 		url := httpsOrigin(pkgRepo.Origin)
 
 		if !c.Bool("force-https") {
-			gitConfig = exec.Command("git", "config", "--file", gitmodules, "submodule." + relRoot + ".url")
+			gitConfig = exec.Command("git", "config", "--file", gitmodules, "submodule."+relRoot+".url")
 			gitConfig.Stderr = os.Stderr
 
 			out, err := gitConfig.Output()

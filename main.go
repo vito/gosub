@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/codegangsta/cli"
@@ -48,7 +49,7 @@ func main() {
 					Usage: "Submodule to ignore",
 				},
 				cli.BoolTFlag{
-					Name: "force-https",
+					Name:  "force-https",
 					Usage: "Rewrite ssh repositories as https. (default \"true\")",
 				},
 			},
@@ -72,5 +73,8 @@ func main() {
 		},
 	}
 
-	app.Run(os.Args)
+	if err := app.Run(os.Args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 }
