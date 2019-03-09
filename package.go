@@ -45,7 +45,7 @@ func listPackages(pkgs map[string]Package, goos string, ps ...string) error {
 			"go",
 			append([]string{"list", "-e", "-json"}, packages...)...,
 		)
-		listPackages.Env = []string{"GOOS=" + goos, "GOPATH=" + os.Getenv("GOPATH")}
+		listPackages.Env = []string{"GOOS=" + goos, "GOPATH=" + os.Getenv("GOPATH"), "HOME=" + os.Getenv("HOME")}
 
 		listPackages.Stderr = os.Stderr
 
