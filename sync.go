@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
 )
 
 func sync(c *cli.Context) error {
