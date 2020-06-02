@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
 )
 
 func list(c *cli.Context) error {
