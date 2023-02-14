@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"sort"
+	"strings"
 )
 
 const packageBatchSize = 100
@@ -41,9 +42,14 @@ func listPackages(pkgs map[string]Package, goos string, ps ...string) error {
 			remainingPackages = remainingPackages[packageBatchSize:]
 		}
 
+		flags := []string{"list", "-e", "-json"}
+		if v, exists := os.LookupEnv("BUILD_FLAGS"); exists {
+			flags = append(flags, strings.Split(v, " ")...)
+		}
+
 		listPackages := exec.Command(
 			"go",
-			append([]string{"list", "-e", "-json"}, packages...)...,
+			append(flags, packages...)...,
 		)
 		listPackages.Env = []string{"GOOS=" + goos, "GOPATH=" + os.Getenv("GOPATH"), "HOME=" + os.Getenv("HOME")}
 
