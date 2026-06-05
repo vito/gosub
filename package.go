@@ -22,7 +22,7 @@ type Package struct {
 	XTestImports []string
 }
 
-func listPackages(pkgs map[string]Package, goos string, ps ...string) error {
+func listPackages(pkgs map[string]Package, goos, goarch string, ps ...string) error {
 	if len(ps) == 0 {
 		return nil
 	}
@@ -51,7 +51,7 @@ func listPackages(pkgs map[string]Package, goos string, ps ...string) error {
 			"go",
 			append(flags, packages...)...,
 		)
-		listPackages.Env = []string{"GOOS=" + goos, "GOPATH=" + os.Getenv("GOPATH"), "HOME=" + os.Getenv("HOME"), "PATH=" + os.Getenv("PATH")}
+		listPackages.Env = []string{"GOOS=" + goos, "GOARCH=" + goarch, "GOPATH=" + os.Getenv("GOPATH"), "HOME=" + os.Getenv("HOME"), "PATH=" + os.Getenv("PATH")}
 
 		listPackages.Stderr = os.Stderr
 
@@ -113,11 +113,27 @@ func (ps byImportPath) Len() int               { return len(ps) }
 func (ps byImportPath) Less(i int, j int) bool { return ps[i].ImportPath < ps[j].ImportPath }
 func (ps byImportPath) Swap(i int, j int)      { ps[i], ps[j] = ps[j], ps[i] }
 
+type platform struct {
+	goos, goarch string
+}
+
+// platforms covers the OS/arch combinations that are relevant for BOSH-deployed
+// workloads and developer machines. Iterating all combinations ensures that
+// architecture-specific files (e.g. files constrained to //go:build amd64)
+// are included regardless of the host architecture running this tool.
+var platforms = []platform{
+	{"linux", "amd64"},
+	{"linux", "arm64"},
+	{"darwin", "amd64"},
+	{"darwin", "arm64"},
+	{"windows", "amd64"},
+}
+
 func listAllPlatformPackages(packages ...string) ([]Package, error) {
 	allPackages := map[string]Package{}
 
-	for _, goos := range []string{"linux", "darwin", "windows"} {
-		err := listPackages(allPackages, goos, packages...)
+	for _, p := range platforms {
+		err := listPackages(allPackages, p.goos, p.goarch, packages...)
 		if err != nil {
 			return nil, err
 		}
